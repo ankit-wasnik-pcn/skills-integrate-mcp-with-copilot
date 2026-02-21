@@ -3,6 +3,41 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+  const loginForm = document.getElementById("login-form");
+  const logoutBtn = document.getElementById("logout-btn");
+  const authStatus = document.getElementById("auth-status");
+
+  function getToken() {
+    return localStorage.getItem("access_token");
+  }
+
+  function setToken(token) {
+    localStorage.setItem("access_token", token);
+  }
+
+  function clearToken() {
+    localStorage.removeItem("access_token");
+  }
+
+  function updateAuthStatus() {
+    authStatus.textContent = getToken()
+      ? "Logged in. Protected actions enabled."
+      : "Not logged in";
+  }
+
+  async function apiFetch(url, options = {}) {
+    const headers = options.headers ? { ...options.headers } : {};
+    const token = getToken();
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return fetch(url, {
+      ...options,
+      headers,
+    });
+  }
 
   // Function to fetch activities from API
   async function fetchActivities() {
@@ -74,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = button.getAttribute("data-email");
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/activities/${encodeURIComponent(
           activity
         )}/unregister?email=${encodeURIComponent(email)}`,
@@ -94,6 +129,11 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
+
+        if (response.status === 401) {
+          clearToken();
+          updateAuthStatus();
+        }
       }
 
       messageDiv.classList.remove("hidden");
@@ -118,7 +158,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const activity = document.getElementById("activity").value;
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/activities/${encodeURIComponent(
           activity
         )}/signup?email=${encodeURIComponent(email)}`,
@@ -139,6 +179,11 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
+
+        if (response.status === 401) {
+          clearToken();
+          updateAuthStatus();
+        }
       }
 
       messageDiv.classList.remove("hidden");
@@ -155,6 +200,59 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const email = document.getElementById("login-email").value;
+    const password = document.getElementById("login-password").value;
+
+    try {
+      const response = await fetch("/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setToken(result.access_token);
+        updateAuthStatus();
+        loginForm.reset();
+        messageDiv.textContent = "Login successful";
+        messageDiv.className = "success";
+      } else {
+        clearToken();
+        updateAuthStatus();
+        messageDiv.textContent = result.detail || "Login failed";
+        messageDiv.className = "error";
+      }
+
+      messageDiv.classList.remove("hidden");
+      setTimeout(() => {
+        messageDiv.classList.add("hidden");
+      }, 5000);
+    } catch (error) {
+      messageDiv.textContent = "Failed to login. Please try again.";
+      messageDiv.className = "error";
+      messageDiv.classList.remove("hidden");
+    }
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    clearToken();
+    updateAuthStatus();
+    messageDiv.textContent = "Logged out";
+    messageDiv.className = "info";
+    messageDiv.classList.remove("hidden");
+    setTimeout(() => {
+      messageDiv.classList.add("hidden");
+    }, 5000);
+  });
+
   // Initialize app
+  updateAuthStatus();
   fetchActivities();
 });

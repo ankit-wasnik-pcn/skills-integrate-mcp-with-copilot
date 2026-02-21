@@ -13,6 +13,23 @@
     </header>
 
     <main>
+      <section id="auth-container">
+        <h3>Teacher Login</h3>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-email">Email:</label>
+            <input type="email" id="login-email" required placeholder="admin@mergington.edu" />
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password:</label>
+            <input type="password" id="login-password" required placeholder="Enter password" />
+          </div>
+          <button type="submit">Login</button>
+          <button type="button" id="logout-btn">Logout</button>
+        </form>
+        <p id="auth-status" class="info">Not logged in</p>
+      </section>
+
       <section id="activities-container">
         <h3>Available Activities</h3>
         <div id="activities-list">
